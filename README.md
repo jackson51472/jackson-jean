@@ -1,58 +1,53 @@
-# 🎮 Jogo 2D no Canvas com LLMs (ChatGPT, Gemini ou Claude)
-
-**Atividade Prática — 7 e 8 de outubro de 2025**  
-📚 *Disciplina: Desenvolvimento de Jogos Digitais*  
-👨🏻‍🏫 **Professor:** [Christien Lana Rachid](https://github.com/christienrachid)  
-📍 *Centro Universitário Academia*  
-
----
-
-## 🧭 Descrição
-Este é o **repositório modelo oficial** da atividade avaliativa **“Jogo 2D no Canvas com LLMs”**, valendo **10 pontos**.  
-Os alunos devem trabalhar **em duplas**, desenvolvendo um **jogo 2D em HTML5 Canvas, JavaScript e CSS**, utilizando **duas LLMs (ChatGPT, Gemini ou Claude)** para apoio técnico e criativo.
-
----
-
-## ⚙️ Entregas
-- **Código-fonte:** via **Pull Request (PR)** neste repositório.  
-- **Relatório técnico (PDF):** via **tarefa no Canvas**.
-
-📅 **Prazo final:** 08/10/2025, até 23h59.
-
----
-
-## 🗂️ Estrutura do Template
-
-index.html
-style.css
-main.js
-
-/assets/ → sprites, sons, fundos
-/docs/ → prints, relatório completo e README detalhado
-/prompts/ → prompts utilizados nas LLMs (.txt)
-
----
-
-## 🧩 Instruções resumidas
-1. Clique em **Use this template → Create a new repository**  
-2. Nomeie seu repositório:  
-
 dupla-sobrenome1-sobrenome2-tema
 
-Exemplo: `dupla-oliveira-gomes-asteroides`
+# Deep Diver: Submarine Runner
 
-3. Desenvolva o jogo seguindo os requisitos e orientações.  
-4. Abra um **Pull Request (PR)** para este repositório até a data limite.  
-5. Envie o **relatório técnico** no Canvas.
+## Sobre o Jogo
 
----
+Deep Diver: Submarine Runner é um jogo runner 2D vertical, onde você controla um submarino que deve desviar de minas marítimas e coletar moedas para comprar upgrades. O objetivo é sobreviver o máximo possível, acumulando pontos e moedas para melhorar seu submarino.
 
-## 🔗 Documentos
-🎓 [Acesse o Canvas para envio do relatório](https://uniacademia.instructure.com/)  
+## Como Jogar
 
----
+- **Movimentação:** Use as teclas **W/S** ou **Setas Cima/Baixo** para mover o submarino verticalmente.
+- **Desviar:** Evite colidir com as minas que aparecem pela direita da tela.
+- **Coletar Moedas:** Pegue moedas para acumular saldo e comprar upgrades.
+- **Upgrades:** Pressione **U** para abrir/fechar o painel de upgrades. Compre melhorias usando moedas:
+	- **Propulsão Avançada:** Aumenta a velocidade e aceleração vertical.
+	- **Blindagem Reforçada:** Permite resistir a mais colisões (vidas extras).
+- **Game Over:** Ao perder todas as vidas, clique em "Reiniciar" para jogar novamente.
 
-> “Criar é aprender duas vezes.”  
-> — *Joseph Joubert*  
+## Controles
 
----
+- **W / S** ou **Seta Cima / Seta Baixo**: Movimenta o submarino para cima/baixo
+- **U**: Abre/fecha o painel de upgrades
+- **Mouse**: Clique em "Iniciar Jogo" ou "Reiniciar" para começar ou reiniciar a partida
+
+## Como o Jogo Foi Feito
+
+- **Tecnologias:** HTML5, CSS3 e JavaScript puro, utilizando a **Canvas API** para renderização gráfica.
+- **Arquitetura:** Estrutura modular orientada a objetos, com classes separadas para Submarino, Mina, Moeda, Gerenciador de Colisões, Estado do Jogo e UI.
+- **Game Loop:** Utiliza `requestAnimationFrame` para garantir animação suave e alta performance.
+- **Geração Procedural:** Minas e moedas são geradas de forma procedural, com dificuldade progressiva.
+- **Sistema de Upgrades:** Implementado via painel de UI, com lógica de compra e aplicação dos upgrades.
+- **Expansibilidade:** O projeto permite fácil adição de novos elementos, como power-ups, inimigos ou efeitos visuais.
+- **Spritesheet:** (Opcional) Suporte para animação do submarino via spritesheet, facilmente reativável no código.
+
+## Como Executar
+
+1. **Baixe ou clone o projeto.**
+2. **Abra o arquivo `index.html` em seu navegador.**
+3. **Jogue!**
+
+## Estrutura do Projeto
+
+```
+assets/
+	images/   # Sprites, imagens do submarino, minas, moedas
+	sounds/   # Sons do jogo (opcional)
+src/
+	classes/  # Classes JS do jogo
+	ui/       # Módulos de interface
+index.html  # Arquivo principal
+style.css   # Estilos visuais
+README.md   # Este manual
+```

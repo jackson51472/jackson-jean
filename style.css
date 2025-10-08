@@ -1,0 +1,40 @@
+body {
+    margin: 0;
+    background: #0a2233;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+}
+#gameCanvas {
+    display: block;
+    margin: 0 auto;
+    background: linear-gradient(to bottom, #0a2233 60%, #145e8a 100%);
+    box-shadow: 0 0 32px #000a;
+    border-radius: 12px;
+}
+#hud {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 1.2em;
+    background: rgba(0,0,0,0.4);
+    padding: 8px 24px;
+    border-radius: 8px;
+    z-index: 2;
+}
+#upgradePanel {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a2e3a;
+    color: #fff;
+    padding: 16px 32px;
+    border-radius: 10px;
+    box-shadow: 0 0 16px #000a;
+    z-index: 3;
+}
+.hidden {
+    display: none;
+}
