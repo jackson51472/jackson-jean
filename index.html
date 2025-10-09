@@ -1,338 +1,538 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deep Diver: Submarine Runner</title>
     <style>
-        body { margin: 0; background: #0a2233; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; }
-        #gameCanvas { display: block; margin: 0 auto; background: linear-gradient(to bottom, #0a2233 60%, #145e8a 100%); box-shadow: 0 0 32px #000a; border-radius: 12px; }
-        #hud { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 1.2em; background: rgba(0,0,0,0.4); padding: 8px 24px; border-radius: 8px; z-index: 2; }
-        #upgradePanel { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); background: #1a2e3a; color: #fff; padding: 16px 32px; border-radius: 10px; box-shadow: 0 0 16px #000a; z-index: 3; }
-        .hidden { display: none; }
-        button { font-size: 1em; margin: 6px 0; padding: 6px 18px; border-radius: 6px; border: none; background: #145e8a; color: #fff; cursor: pointer; }
-        button:disabled { background: #555; cursor: not-allowed; }
+        body {
+            margin: 0;
+            background: #0a2233;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            background: linear-gradient(to bottom, #0a2233 60%, #145e8a 100%);
+            box-shadow: 0 0 32px #000a;
+            border-radius: 12px;
+        }
+
+        #hud {
+            position: absolute;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 1.2em;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 24px;
+            border-radius: 8px;
+            z-index: 2;
+        }
+
+        #upgradePanel {
+            position: absolute;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a2e3a;
+            color: #fff;
+            padding: 16px 32px;
+            border-radius: 10px;
+            box-shadow: 0 0 16px #000a;
+            z-index: 3;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        button {
+            font-size: 1em;
+            margin: 6px 0;
+            padding: 6px 18px;
+            border-radius: 6px;
+            border: none;
+            background: #145e8a;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
     </style>
 </head>
+
 <body>
     <div id="gameContainer" style="position:relative; width:100vw; height:100vh;">
-        <canvas id="gameCanvas" width="960" height="600" style="display:block; margin:0 auto; max-width:96vw; max-height:80vh;"></canvas>
+        <canvas id="gameCanvas" width="960" height="600"
+            style="display:block; margin:0 auto; max-width:96vw; max-height:80vh;"></canvas>
         <div id="hud"></div>
         <div id="upgradePanel" class="hidden"></div>
-        <button id="startBtn" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:2em; padding:16px 48px; border-radius:12px; background:#145e8a; color:#fff; border:none; cursor:pointer; z-index:10;">Iniciar Jogo</button>
-        <button id="restartBtn" class="hidden" style="position:absolute; top:55%; left:50%; transform:translate(-50%,-50%); font-size:1.5em; padding:12px 36px; border-radius:10px; background:#c0392b; color:#fff; border:none; cursor:pointer; z-index:10;">Reiniciar</button>
+        <button id="startBtn"
+            style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:2em; padding:16px 48px; border-radius:12px; background:#145e8a; color:#fff; border:none; cursor:pointer; z-index:10;">Iniciar
+            Jogo</button>
+        <button id="restartBtn" class="hidden"
+            style="position:absolute; top:55%; left:50%; transform:translate(-50%,-50%); font-size:1.5em; padding:12px 36px; border-radius:10px; background:#c0392b; color:#fff; border:none; cursor:pointer; z-index:10;">Reiniciar</button>
     </div>
     <script>
-// --- Classes ---
-class Submarine {
-    constructor(x, y, upgrades) {
-        this.x = x;
-        this.y = y;
-        this.width = 64;
-        this.height = 32;
-        this.speed = 4;
-        this.acceleration = 0.2;
-        this.dy = 0;
-        this.lives = upgrades.shield ? 2 : 1;
-        this.upgrades = upgrades;
-    }
-    update(input, canvasHeight) {
-        if (input.up) this.dy -= this.acceleration * (this.upgrades.engine ? 1.5 : 1);
-        if (input.down) this.dy += this.acceleration * (this.upgrades.engine ? 1.5 : 1);
-        this.dy *= 0.92;
-        const maxSpeed = this.speed * (this.upgrades.engine ? 1.5 : 1);
-        this.dy = Math.max(-maxSpeed, Math.min(maxSpeed, this.dy));
-        this.y += this.dy;
-        if (this.y < 0) this.y = 0;
-        if (this.y + this.height > canvasHeight) this.y = canvasHeight - this.height;
-    }
-    draw(ctx) {
-        ctx.save();
-        ctx.fillStyle = '#ffe066';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.restore();
-    }
-}
-class Mine {
-    constructor(x, y, speed) {
-        this.x = x;
-        this.y = y;
-        this.width = 32;
-        this.height = 32;
-        this.speed = speed;
-        this.active = true;
-    }
-    update() {
-        this.x -= this.speed;
-        if (this.x + this.width < 0) this.active = false;
-    }
-    draw(ctx) {
-        ctx.save();
-        ctx.fillStyle = '#c0392b';
-        ctx.beginPath();
-        ctx.arc(this.x + 16, this.y + 16, 16, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-    }
-}
-class Coin {
-    constructor(x, y, speed) {
-        this.x = x;
-        this.y = y;
-        this.width = 24;
-        this.height = 24;
-        this.speed = speed;
-        this.active = true;
-    }
-    update() {
-        this.x -= this.speed;
-        if (this.x + this.width < 0) this.active = false;
-    }
-    draw(ctx) {
-        ctx.save();
-        ctx.fillStyle = '#ffd700';
-        ctx.beginPath();
-        ctx.arc(this.x + 12, this.y + 12, 12, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-    }
-}
-class CollisionManager {
-    static aabb(a, b) {
-        return (
-            a.x < b.x + b.width &&
-            a.x + a.width > b.x &&
-            a.y < b.y + b.height &&
-            a.y + a.height > b.y
-        );
-    }
-}
-class HUD {
-    constructor(elem) { this.elem = elem; }
-    update(score, coins, lives) {
-        this.elem.innerHTML = `Pontuação: <b>${score}</b> | Moedas: <b>${coins}</b> | Vidas: <b>${lives}</b>`;
-    }
-    showGameOver(score) {
-        this.elem.innerHTML = `<span style='color:#ff4c4c'>GAME OVER</span><br>Pontuação Final: <b>${score}</b><br><button onclick='location.reload()'>Reiniciar</button>`;
-    }
-}
-class UpgradePanel {
-    constructor(elem, upgrades, onUpgrade) {
-        this.elem = elem;
-        this.upgrades = upgrades;
-        this.onUpgrade = onUpgrade;
-        this.selected = null;
-        this.elem.addEventListener('click', e => {
-            if (e.target.dataset.upgrade) {
-                this.selected = e.target.dataset.upgrade;
-                this.onUpgrade();
+        // --- Classes ---
+        class Submarine {
+            constructor(x, y, upgrades) {
+                this.x = x;
+                this.y = y;
+                // Tamanho lógico na tela (pode escalar mantendo proporção)
+                this.width = 64;
+                this.height = 32;
+                this.speed = 4;
+                this.acceleration = 0.2;
+                this.dy = 0;
+                this.lives = upgrades.shield ? 2 : 1;
+                this.upgrades = upgrades;
+
+                // --- Spritesheet (Opção A) ---
+                // Grid: 4 colunas x 3 linhas, cada frame 64x32 px
+                this.sheet = new Image();
+                this.sheetLoaded = false;
+                this.sheet.onload = () => { this.sheetLoaded = true; };
+                // Usa o novo nome spitesheet.png; se falhar, tenta o antigo player_spritesheet.png
+                this._sheetTriedAlt = false;
+                this.sheet.onerror = () => {
+                    if (!this._sheetTriedAlt) {
+                        this._sheetTriedAlt = true;
+                        this.sheet.src = 'assets/images/spritesheet.png';
+                    }
+                };
+                this.sheet.src = 'assets/images/spitesheet.png';
+                this.frameW = 64; // larguraFrame
+                this.frameH = 32; // alturaFrame
+                this.cols = 4;
+                this.rows = 3;
+
+                // Animações por linha: idle (0), run (1), shoot (2)
+                this.animations = {
+                    idle: { row: 0, from: 0, to: 3, fps: 6, loop: true },
+                    run: { row: 1, from: 0, to: 3, fps: 10, loop: true },
+                    shoot: { row: 2, from: 0, to: 3, fps: 12, loop: false },
+                };
+                this.state = 'idle';
+                this.frameIndex = this.animations[this.state].from;
+                this.frameTimer = 0;
+                this.frameDuration = 1000 / this.animations[this.state].fps; // ms por frame
+                this.shootingTimer = 0; // ms restantes do estado de tiro
             }
-        });
-    }
-    toggle(coins) {
-        if (this.elem.classList.contains('hidden')) {
-            this.render(coins);
-            this.elem.classList.remove('hidden');
-        } else {
-            this.elem.classList.add('hidden');
+            setState(name) {
+                if (this.state === name) return;
+                this.state = name;
+                const anim = this.animations[this.state];
+                this.frameIndex = anim.from;
+                this.frameTimer = 0;
+                this.frameDuration = 1000 / anim.fps;
+            }
+            shoot() {
+                // Dispara animação de tiro (não loopa)
+                const anim = this.animations.shoot;
+                this.setState('shoot');
+                this.shootingTimer = ((anim.to - anim.from + 1) / anim.fps) * 1000; // duração em ms
+            }
+            update(input, canvasHeight, dt = 16) {
+                if (input.up) this.dy -= this.acceleration * (this.upgrades.engine ? 1.5 : 1);
+                if (input.down) this.dy += this.acceleration * (this.upgrades.engine ? 1.5 : 1);
+                this.dy *= 0.92;
+                const maxSpeed = this.speed * (this.upgrades.engine ? 1.5 : 1);
+                this.dy = Math.max(-maxSpeed, Math.min(maxSpeed, this.dy));
+                this.y += this.dy;
+                if (this.y < 0) this.y = 0;
+                if (this.y + this.height > canvasHeight) this.y = canvasHeight - this.height;
+
+                // Prioridade de estados: shoot > idle/run
+                if (this.shootingTimer > 0) {
+                    this.shootingTimer -= dt;
+                    if (this.shootingTimer <= 0) {
+                        const moving = Math.abs(this.dy) > 0.2 || input.up || input.down;
+                        this.setState(moving ? 'run' : 'idle');
+                    }
+                } else {
+                    const moving = Math.abs(this.dy) > 0.2 || input.up || input.down;
+                    this.setState(moving ? 'run' : 'idle');
+                }
+
+                // Controle de frames (frameTimer)
+                const anim = this.animations[this.state];
+                this.frameTimer += dt;
+                while (this.frameTimer >= this.frameDuration) {
+                    this.frameTimer -= this.frameDuration;
+                    if (this.frameIndex < anim.to) {
+                        this.frameIndex++;
+                    } else if (anim.loop) {
+                        this.frameIndex = anim.from;
+                    } else {
+                        this.frameIndex = anim.to; // mantém último frame no shoot
+                    }
+                }
+            }
+            draw(ctx) {
+                if (this.sheetLoaded) {
+                    const anim = this.animations[this.state];
+                    const col = this.frameIndex % this.cols;
+                    const sx = col * this.frameW;
+                    const sy = anim.row * this.frameH;
+                    const sw = this.frameW;
+                    const sh = this.frameH;
+                    const dx = this.x;
+                    const dy = this.y;
+                    const dw = this.width;
+                    const dh = this.height;
+                    // drawImage com clipping
+                    ctx.drawImage(this.sheet, sx, sy, sw, sh, dx, dy, dw, dh);
+                } else {
+                    // Fallback simples
+                    ctx.save();
+                    ctx.fillStyle = '#ffe066';
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                    ctx.restore();
+                }
+            }
         }
-    }
-    render(coins) {
-        const enginePrice = Math.round(10 / 2); // 5
-        const shieldPrice = Math.round(15 / 2); // 8
-        this.elem.innerHTML = `
+        class Mine {
+            constructor(x, y, speed, assets = null) {
+                this.x = x;
+                this.y = y;
+                this.width = 32;
+                this.height = 32;
+                this.speed = speed;
+                this.active = true;
+                this.assets = assets || {};
+            }
+            update() {
+                this.x -= this.speed;
+                if (this.x + this.width < 0) this.active = false;
+            }
+            draw(ctx) {
+                const img = this.assets && this.assets.mine;
+                if (img) {
+                    // Desenha mantendo proporção (fit) dentro do box 32x32
+                    const iw = img.naturalWidth || img.width;
+                    const ih = img.naturalHeight || img.height;
+                    if (iw && ih) {
+                        const scale = Math.min(this.width / iw, this.height / ih);
+                        const dw = Math.max(1, Math.floor(iw * scale));
+                        const dh = Math.max(1, Math.floor(ih * scale));
+                        const dx = Math.floor(this.x + (this.width - dw) / 2);
+                        const dy = Math.floor(this.y + (this.height - dh) / 2);
+                        ctx.drawImage(img, dx, dy, dw, dh);
+                        return;
+                    }
+                }
+                // Fallback: forma vetorial
+                ctx.save();
+                ctx.fillStyle = '#c0392b';
+                ctx.beginPath();
+                ctx.arc(this.x + 16, this.y + 16, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        class Coin {
+            constructor(x, y, speed, assets = null) {
+                this.x = x;
+                this.y = y;
+                this.width = 24;
+                this.height = 24;
+                this.speed = speed;
+                this.active = true;
+                this.assets = assets || {};
+            }
+            update() {
+                this.x -= this.speed;
+                if (this.x + this.width < 0) this.active = false;
+            }
+            draw(ctx) {
+                const img = this.assets && this.assets.coin;
+                if (img) {
+                    ctx.drawImage(img, this.x, this.y, this.width, this.height);
+                    return;
+                }
+                // Fallback: forma vetorial
+                ctx.save();
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(this.x + 12, this.y + 12, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        class CollisionManager {
+            static aabb(a, b) {
+                return (
+                    a.x < b.x + b.width &&
+                    a.x + a.width > b.x &&
+                    a.y < b.y + b.height &&
+                    a.y + a.height > b.y
+                );
+            }
+        }
+        class HUD {
+            constructor(elem) { this.elem = elem; }
+            update(score, coins, lives) {
+                this.elem.innerHTML = `Pontuação: <b>${score}</b> | Moedas: <b>${coins}</b> | Vidas: <b>${lives}</b>`;
+            }
+            showGameOver(score) {
+                this.elem.innerHTML = `<span style='color:#ff4c4c'>GAME OVER</span><br>Pontuação Final: <b>${score}</b><br><button onclick='location.reload()'>Reiniciar</button>`;
+            }
+        }
+        class UpgradePanel {
+            constructor(elem, upgrades, onUpgrade) {
+                this.elem = elem;
+                this.upgrades = upgrades;
+                this.onUpgrade = onUpgrade;
+                this.selected = null;
+                this.elem.addEventListener('click', e => {
+                    if (e.target.dataset.upgrade) {
+                        this.selected = e.target.dataset.upgrade;
+                        this.onUpgrade();
+                    }
+                });
+            }
+            toggle(coins) {
+                if (this.elem.classList.contains('hidden')) {
+                    this.render(coins);
+                    this.elem.classList.remove('hidden');
+                } else {
+                    this.elem.classList.add('hidden');
+                }
+            }
+            render(coins) {
+                const enginePrice = Math.round(10 / 2); // 5
+                const shieldPrice = Math.round(15 / 2); // 8
+                this.elem.innerHTML = `
             <h3>Upgrades</h3>
             <button data-upgrade="engine" ${this.upgrades.engine ? 'disabled' : ''}>Propulsão Avançada (${enginePrice} moedas)</button><br>
             <button data-upgrade="shield" ${this.upgrades.shield ? 'disabled' : ''}>Blindagem Reforçada (${shieldPrice} moedas)</button><br>
             <small>Moedas disponíveis: ${coins}</small>
             <br><span style='font-size:0.9em'>Pressione U para abrir/fechar</span>
         `;
-    }
-}
-
-// --- GameState ---
-class GameState {
-    constructor(canvas, hudElem, upgradeElem, startBtn, restartBtn) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
-        this.hudElem = hudElem;
-        this.upgradeElem = upgradeElem;
-        this.startBtn = startBtn;
-        this.restartBtn = restartBtn;
-        this.input = { up: false, down: false };
-        this.submarine = null;
-        this.mines = [];
-        this.coins = [];
-        this.score = 0;
-        this.coinsCollected = 0;
-        this.spawnTimer = 0;
-        this.spawnInterval = 80;
-        this.mineSpeed = 3;
-        this.difficultyTimer = 0;
-        this.upgrades = { engine: false, shield: false };
-        this.hud = new HUD(hudElem);
-        this.upgradePanel = new UpgradePanel(upgradeElem, this.upgrades, () => this.applyUpgrade());
-        this.gameOver = false;
-        this.running = false;
-        this.addListeners();
-        this.showStart();
-    }
-    showStart() {
-        this.startBtn.classList.remove('hidden');
-        this.restartBtn.classList.add('hidden');
-        this.hud.update(0, 0, 1);
-        this.clear();
-    }
-    startGame() {
-        this.score = 0;
-        this.coinsCollected = 0;
-        this.spawnTimer = 0;
-        this.mineSpeed = 3;
-        this.spawnInterval = 80;
-        this.difficultyTimer = 0;
-        this.upgrades = { engine: false, shield: false };
-        this.submarine = new Submarine(48, this.canvas.height / 2 - 16, this.upgrades);
-        this.mines = [];
-        this.coins = [];
-        this.gameOver = false;
-        this.running = true;
-        this.startBtn.classList.add('hidden');
-        this.restartBtn.classList.add('hidden');
-        this.hud.update(this.score, this.coinsCollected, this.submarine.lives);
-        this.loop();
-    }
-    showGameOver() {
-        this.running = false;
-        this.gameOver = true;
-        this.hud.showGameOver(this.score);
-        this.restartBtn.classList.remove('hidden');
-    }
-    addListeners() {
-        window.addEventListener('keydown', e => {
-            if (!this.running) return;
-            if (e.code === 'ArrowUp' || e.code === 'KeyW') this.input.up = true;
-            if (e.code === 'ArrowDown' || e.code === 'KeyS') this.input.down = true;
-            if (e.code === 'KeyU') this.toggleUpgradePanel();
-        });
-        window.addEventListener('keyup', e => {
-            if (!this.running) return;
-            if (e.code === 'ArrowUp' || e.code === 'KeyW') this.input.up = false;
-            if (e.code === 'ArrowDown' || e.code === 'KeyS') this.input.down = false;
-        });
-        this.startBtn.onclick = () => this.startGame();
-        this.restartBtn.onclick = () => this.startGame();
-    }
-    toggleUpgradePanel() {
-        this.upgradePanel.toggle(this.coinsCollected);
-    }
-    applyUpgrade() {
-        // Loja de upgrades
-        const enginePrice = Math.round(10 / 2); // 5
-        const shieldPrice = Math.round(15 / 2); // 8
-        if (this.upgradePanel.selected === 'engine' && this.coinsCollected >= enginePrice && !this.upgrades.engine) {
-            this.upgrades.engine = true;
-            this.coinsCollected -= enginePrice;
-            this.submarine.upgrades = this.upgrades;
-        }
-        if (this.upgradePanel.selected === 'shield' && this.coinsCollected >= shieldPrice && !this.upgrades.shield) {
-            this.upgrades.shield = true;
-            this.coinsCollected -= shieldPrice;
-            this.submarine.upgrades = this.upgrades;
-            this.submarine.lives = this.upgrades.shield ? 2 : 1;
-        }
-        this.upgradePanel.selected = null;
-        this.upgradePanel.toggle(this.coinsCollected);
-        // Atualiza HUD após compra
-        this.hud.update(this.score, this.coinsCollected, this.submarine.lives);
-    }
-    loop() {
-        if (!this.running) return;
-        this.update();
-        this.draw();
-        if (!this.gameOver) {
-            requestAnimationFrame(() => this.loop());
-        }
-    }
-    update() {
-        this.score++;
-        this.difficultyTimer++;
-        // Aumenta a dificuldade gradualmente
-        if (this.difficultyTimer % 300 === 0) {
-            this.mineSpeed += 0.2; // Crescimento mais lento
-            this.spawnInterval = Math.max(40, this.spawnInterval - 5);
-        }
-        // Atualiza posição do submarino
-        this.submarine.update(this.input, this.canvas.height);
-        // Timer para geração procedural de minas e moedas
-        this.spawnTimer++;
-        if (this.spawnTimer >= this.spawnInterval) {
-            this.spawnTimer = 0;
-            // --- GERAÇÃO DE MINA ---
-            // Cria uma mina em posição vertical aleatória na lateral direita
-            const mineY = Math.random() * (this.canvas.height - 32);
-            this.mines.push(new Mine(this.canvas.width, mineY, this.mineSpeed));
-            // --- GERAÇÃO DE MOEDA ---
-            // Cria uma moeda em posição aleatória, evitando sobreposição com a mina
-            if (Math.random() < 0.3) {
-                let coinY;
-                let attempts = 0;
-                do {
-                    coinY = Math.random() * (this.canvas.height - 24);
-                    attempts++;
-                } while (Math.abs(coinY - mineY) < 32 && attempts < 10);
-                this.coins.push(new Coin(this.canvas.width, coinY, this.mineSpeed));
             }
         }
-        // Atualiza posição das minas e moedas
-        this.mines.forEach(m => m.update());
-        this.coins.forEach(c => c.update());
-        // Remove entidades fora da tela
-        this.mines = this.mines.filter(m => m.active);
-        this.coins = this.coins.filter(c => c.active);
-        // --- COLISÃO SUBMARINO-MINA ---
-        // Verifica colisão entre submarino e cada mina (AABB)
-        for (const mine of this.mines) {
-            if (CollisionManager.aabb(this.submarine, mine)) {
-                mine.active = false;
-                this.submarine.lives--;
-                if (this.submarine.lives <= 0) {
-                    this.showGameOver();
+
+        // --- GameState ---
+        class GameState {
+            constructor(canvas, hudElem, upgradeElem, startBtn, restartBtn) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.hudElem = hudElem;
+                this.upgradeElem = upgradeElem;
+                this.startBtn = startBtn;
+                this.restartBtn = restartBtn;
+                this.input = { up: false, down: false };
+                this.submarine = null;
+                this.mines = [];
+                this.coins = [];
+                this.score = 0;
+                this.coinsCollected = 0;
+                this.spawnTimer = 0;
+                this.spawnInterval = 80;
+                this.mineSpeed = 3;
+                this.difficultyTimer = 0;
+                this.upgrades = { engine: false, shield: false };
+                this.hud = new HUD(hudElem);
+                this.upgradePanel = new UpgradePanel(upgradeElem, this.upgrades, () => this.applyUpgrade());
+                this.gameOver = false;
+                this.running = false;
+                this.lastTime = 0; // para delta time
+                // Assets (coin.gif, miner.png)
+                this.assets = { coin: null, mine: null };
+                this.loadAssets();
+                this.addListeners();
+                this.showStart();
+            }
+            loadAssets() {
+                const loadImg = (src) => new Promise((res) => {
+                    const img = new Image();
+                    img.src = src;
+                    img.onload = () => res(img);
+                    img.onerror = () => res(null);
+                });
+                // coin: tenta GIF, depois PNG
+                loadImg('assets/images/coin.gif').then(img => {
+                    if (img) this.assets.coin = img; else {
+                        loadImg('assets/images/coin.png').then(png => { this.assets.coin = png; });
+                    }
+                });
+                // mine: prioriza miner.png, fallback para mine.png
+                loadImg('assets/images/miner.png').then(img => {
+                    if (img) this.assets.mine = img; else {
+                        loadImg('assets/images/mine.png').then(png => { this.assets.mine = png; });
+                    }
+                });
+            }
+            showStart() {
+                this.startBtn.classList.remove('hidden');
+                this.restartBtn.classList.add('hidden');
+                this.hud.update(0, 0, 1);
+                this.clear();
+            }
+            startGame() {
+                this.score = 0;
+                this.coinsCollected = 0;
+                this.spawnTimer = 0;
+                this.mineSpeed = 3;
+                this.spawnInterval = 80;
+                this.difficultyTimer = 0;
+                this.upgrades = { engine: false, shield: false };
+                this.submarine = new Submarine(48, this.canvas.height / 2 - 16, this.upgrades);
+                this.mines = [];
+                this.coins = [];
+                this.gameOver = false;
+                this.running = true;
+                this.lastTime = performance.now();
+                this.startBtn.classList.add('hidden');
+                this.restartBtn.classList.add('hidden');
+                this.hud.update(this.score, this.coinsCollected, this.submarine.lives);
+                this.loop(this.lastTime);
+            }
+            showGameOver() {
+                this.running = false;
+                this.gameOver = true;
+                this.hud.showGameOver(this.score);
+                this.restartBtn.classList.remove('hidden');
+            }
+            addListeners() {
+                window.addEventListener('keydown', e => {
+                    if (!this.running) return;
+                    if (e.code === 'ArrowUp' || e.code === 'KeyW') this.input.up = true;
+                    if (e.code === 'ArrowDown' || e.code === 'KeyS') this.input.down = true;
+                    if (e.code === 'Space') { e.preventDefault(); this.submarine && this.submarine.shoot(); }
+                    if (e.code === 'KeyU') this.toggleUpgradePanel();
+                });
+                window.addEventListener('keyup', e => {
+                    if (!this.running) return;
+                    if (e.code === 'ArrowUp' || e.code === 'KeyW') this.input.up = false;
+                    if (e.code === 'ArrowDown' || e.code === 'KeyS') this.input.down = false;
+                });
+                this.startBtn.onclick = () => this.startGame();
+                this.restartBtn.onclick = () => this.startGame();
+            }
+            toggleUpgradePanel() {
+                this.upgradePanel.toggle(this.coinsCollected);
+            }
+            applyUpgrade() {
+                // Loja de upgrades
+                const enginePrice = Math.round(10 / 2); // 5
+                const shieldPrice = Math.round(15 / 2); // 8
+                if (this.upgradePanel.selected === 'engine' && this.coinsCollected >= enginePrice && !this.upgrades.engine) {
+                    this.upgrades.engine = true;
+                    this.coinsCollected -= enginePrice;
+                    this.submarine.upgrades = this.upgrades;
+                }
+                if (this.upgradePanel.selected === 'shield' && this.coinsCollected >= shieldPrice && !this.upgrades.shield) {
+                    this.upgrades.shield = true;
+                    this.coinsCollected -= shieldPrice;
+                    this.submarine.upgrades = this.upgrades;
+                    this.submarine.lives = this.upgrades.shield ? 2 : 1;
+                }
+                this.upgradePanel.selected = null;
+                this.upgradePanel.toggle(this.coinsCollected);
+                // Atualiza HUD após compra
+                this.hud.update(this.score, this.coinsCollected, this.submarine.lives);
+            }
+            loop(time) {
+                if (!this.running) return;
+                const dt = this.lastTime ? (time - this.lastTime) : 16;
+                this.lastTime = time;
+                this.update(dt);
+                this.draw();
+                if (!this.gameOver) {
+                    requestAnimationFrame((t) => this.loop(t));
                 }
             }
-        }
-        // --- COLISÃO SUBMARINO-MOEDA ---
-        // Verifica colisão entre submarino e cada moeda (AABB)
-        for (const coin of this.coins) {
-            if (CollisionManager.aabb(this.submarine, coin)) {
-                coin.active = false;
-                this.coinsCollected++;
+            update(dt) {
+                this.score++;
+                this.difficultyTimer++;
+                // Aumenta a dificuldade gradualmente
+                if (this.difficultyTimer % 300 === 0) {
+                    this.mineSpeed += 0.2; // Crescimento mais lento
+                    this.spawnInterval = Math.max(40, this.spawnInterval - 5);
+                }
+                // Atualiza posição do submarino
+                this.submarine.update(this.input, this.canvas.height, dt);
+                // Timer para geração procedural de minas e moedas
+                this.spawnTimer++;
+                if (this.spawnTimer >= this.spawnInterval) {
+                    this.spawnTimer = 0;
+                    // --- GERAÇÃO DE MINA ---
+                    // Cria uma mina em posição vertical aleatória na lateral direita
+                    const mineY = Math.random() * (this.canvas.height - 32);
+                    this.mines.push(new Mine(this.canvas.width, mineY, this.mineSpeed, this.assets));
+                    // --- GERAÇÃO DE MOEDA ---
+                    // Cria uma moeda em posição aleatória, evitando sobreposição com a mina
+                    if (Math.random() < 0.3) {
+                        let coinY;
+                        let attempts = 0;
+                        do {
+                            coinY = Math.random() * (this.canvas.height - 24);
+                            attempts++;
+                        } while (Math.abs(coinY - mineY) < 32 && attempts < 10);
+                        this.coins.push(new Coin(this.canvas.width, coinY, this.mineSpeed, this.assets));
+                    }
+                }
+                // Atualiza posição das minas e moedas
+                this.mines.forEach(m => m.update());
+                this.coins.forEach(c => c.update());
+                // Remove entidades fora da tela
+                this.mines = this.mines.filter(m => m.active);
+                this.coins = this.coins.filter(c => c.active);
+                // --- COLISÃO SUBMARINO-MINA ---
+                // Verifica colisão entre submarino e cada mina (AABB)
+                for (const mine of this.mines) {
+                    if (CollisionManager.aabb(this.submarine, mine)) {
+                        mine.active = false;
+                        this.submarine.lives--;
+                        if (this.submarine.lives <= 0) {
+                            this.showGameOver();
+                        }
+                    }
+                }
+                // --- COLISÃO SUBMARINO-MOEDA ---
+                // Verifica colisão entre submarino e cada moeda (AABB)
+                for (const coin of this.coins) {
+                    if (CollisionManager.aabb(this.submarine, coin)) {
+                        coin.active = false;
+                        this.coinsCollected++;
+                    }
+                }
+                // Atualiza HUD (pontuação, moedas, vidas)
+                this.hud.update(this.score, this.coinsCollected, this.submarine.lives);
+            }
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                if (this.running) {
+                    this.submarine.draw(this.ctx);
+                    this.mines.forEach(m => m.draw(this.ctx));
+                    this.coins.forEach(c => c.draw(this.ctx));
+                }
+            }
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             }
         }
-        // Atualiza HUD (pontuação, moedas, vidas)
-        this.hud.update(this.score, this.coinsCollected, this.submarine.lives);
-    }
-    draw() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        if (this.running) {
-            this.submarine.draw(this.ctx);
-            this.mines.forEach(m => m.draw(this.ctx));
-            this.coins.forEach(c => c.draw(this.ctx));
-        }
-    }
-    clear() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-}
 
-// --- Entry Point ---
-window.onload = () => {
-    const canvas = document.getElementById('gameCanvas');
-    const hud = document.getElementById('hud');
-    const upgradePanel = document.getElementById('upgradePanel');
-    const startBtn = document.getElementById('startBtn');
-    const restartBtn = document.getElementById('restartBtn');
-    new GameState(canvas, hud, upgradePanel, startBtn, restartBtn);
-};
+        // --- Entry Point ---
+        window.onload = () => {
+            const canvas = document.getElementById('gameCanvas');
+            const hud = document.getElementById('hud');
+            const upgradePanel = document.getElementById('upgradePanel');
+            const startBtn = document.getElementById('startBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            new GameState(canvas, hud, upgradePanel, startBtn, restartBtn);
+        };
     </script>
 </body>
+
 </html>
